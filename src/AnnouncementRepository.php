@@ -133,7 +133,6 @@ final class AnnouncementRepository
         foreach ($DB->request([
             'SELECT' => ['id', 'name'],
             'FROM' => 'glpi_groups',
-            'WHERE' => ['is_deleted' => 0],
             'ORDER' => ['name ASC'],
         ]) as $row) {
             $groups[(int) $row['id']] = (string) $row['name'];
