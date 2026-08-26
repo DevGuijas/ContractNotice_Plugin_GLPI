@@ -42,7 +42,8 @@ try {
         $profiles = AnnouncementRepository::getProfiles();
         $announcements = AnnouncementRepository::getForManagement();
         $targetIds = array_map('intval', (array) $form['target_ids']);
-        $token = Session::getNewCSRFToken();
+        // Standalone token avoids collisions with GLPI forms rendered in the page header.
+        $token = Session::getNewCSRFToken(true);
         $selected = static fn (bool $state): string => $state ? ' selected' : '';
         $checked = static fn (bool $state): string => $state ? ' checked' : '';
 
@@ -71,24 +72,32 @@ try {
             . '<option value="groups"' . $selected($form['target_type'] === 'groups') . '>Grupo(s)</option>'
             . '<option value="profiles"' . $selected($form['target_type'] === 'profiles') . '>Perfil(is)</option>'
             . '</select></div>'
-            . '<div class="col-md-4 mb-3 contractnotice-target contractnotice-groups"><label class="form-label" for="contractnotice-groups">Grupos</label>'
-            . '<select class="form-select" id="contractnotice-groups" name="target_ids[]" multiple size="6">';
+            . '<div class="col-md-4 mb-3 contractnotice-target contractnotice-groups"><label class="form-label" for="contractnotice-groups-filter">Grupos</label>'
+            . '<input class="form-control mb-2" id="contractnotice-groups-filter" type="search" placeholder="Pesquisar grupos">'
+            . '<div id="contractnotice-groups" class="border rounded p-2 overflow-auto" style="max-height:12rem">';
 
         foreach ($groups as $id => $name) {
-            echo '<option value="' . (int) $id . '"' . $selected(in_array((int) $id, $targetIds, true)) . '>'
-                . $escape($name) . '</option>';
+            $isChecked = in_array((int) $id, $targetIds, true);
+            echo '<label class="form-check d-block mb-1" data-contractnotice-option>'
+                . '<input class="form-check-input" type="checkbox" name="target_ids[]" value="' . (int) $id . '"'
+                . $checked($isChecked) . '><span class="form-check-label">' . $escape($name) . '</span></label>';
         }
 
-        echo '</select></div><div class="col-md-4 mb-3 contractnotice-target contractnotice-profiles">'
-            . '<label class="form-label" for="contractnotice-profiles">Perfis</label>'
-            . '<select class="form-select" id="contractnotice-profiles" name="target_ids[]" multiple size="6">';
+        echo '</div><div class="form-hint">Marque um ou mais grupos.</div></div>'
+            . '<div class="col-md-4 mb-3 contractnotice-target contractnotice-profiles">'
+            . '<label class="form-label" for="contractnotice-profiles-filter">Perfis</label>'
+            . '<input class="form-control mb-2" id="contractnotice-profiles-filter" type="search" placeholder="Pesquisar perfis">'
+            . '<div id="contractnotice-profiles" class="border rounded p-2 overflow-auto" style="max-height:12rem">';
 
         foreach ($profiles as $id => $name) {
-            echo '<option value="' . (int) $id . '"' . $selected(in_array((int) $id, $targetIds, true)) . '>'
-                . $escape($name) . '</option>';
+            $isChecked = in_array((int) $id, $targetIds, true);
+            echo '<label class="form-check d-block mb-1" data-contractnotice-option>'
+                . '<input class="form-check-input" type="checkbox" name="target_ids[]" value="' . (int) $id . '"'
+                . $checked($isChecked) . '><span class="form-check-label">' . $escape($name) . '</span></label>';
         }
 
-        echo '</select></div><div class="col-md-4 mb-3"><label class="form-label" for="contractnotice-delivery-mode">Disparo</label>'
+        echo '</div><div class="form-hint">Marque um ou mais perfis.</div></div>'
+            . '<div class="col-md-4 mb-3"><label class="form-label" for="contractnotice-delivery-mode">Disparo</label>'
             . '<select class="form-select" id="contractnotice-delivery-mode" name="delivery_mode">'
             . '<option value="immediate"' . $selected($form['delivery_mode'] === 'immediate') . '>Imediato</option>'
             . '<option value="login"' . $selected($form['delivery_mode'] === 'login') . '>Sempre ao logar</option>'
@@ -154,20 +163,40 @@ document.addEventListener('DOMContentLoaded', function () {
    var type = document.getElementById('contractnotice-target-type');
    var groupBox = document.querySelector('.contractnotice-groups');
    var profileBox = document.querySelector('.contractnotice-profiles');
-   var groupSelect = document.getElementById('contractnotice-groups');
-   var profileSelect = document.getElementById('contractnotice-profiles');
-   if (!type || !groupBox || !profileBox || !groupSelect || !profileSelect) {
+   var groupFilter = document.getElementById('contractnotice-groups-filter');
+   var profileFilter = document.getElementById('contractnotice-profiles-filter');
+   if (!type || !groupBox || !profileBox) {
       return;
+   }
+   function toggleInputs(box, enabled) {
+      var inputs = box.querySelectorAll('input[type="checkbox"]');
+      for (var index = 0; index < inputs.length; index++) {
+         inputs[index].disabled = !enabled;
+      }
    }
    function refresh() {
       var groups = type.value === 'groups';
       var profiles = type.value === 'profiles';
       groupBox.style.display = groups ? '' : 'none';
       profileBox.style.display = profiles ? '' : 'none';
-      groupSelect.disabled = !groups;
-      profileSelect.disabled = !profiles;
+      toggleInputs(groupBox, groups);
+      toggleInputs(profileBox, profiles);
+   }
+   function addFilter(input, box) {
+      if (!input) {
+         return;
+      }
+      input.addEventListener('input', function () {
+         var term = input.value.toLocaleLowerCase();
+         var options = box.querySelectorAll('[data-contractnotice-option]');
+         for (var index = 0; index < options.length; index++) {
+            options[index].style.display = options[index].textContent.toLocaleLowerCase().indexOf(term) === -1 ? 'none' : '';
+         }
+      });
    }
    type.addEventListener('change', refresh);
+   addFilter(groupFilter, groupBox);
+   addFilter(profileFilter, profileBox);
    refresh();
 });
 </script>

@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Html::redirect($managementUrl);
 }
 
-Session::checkCSRF($_POST);
+// The page issues a standalone token so the three action forms can safely share it.
+Session::checkCSRF($_POST, true);
 if (!AnnouncementRepository::isInstalled()) {
     Session::addMessageAfterRedirect(
         __('O plugin precisa ser atualizado em Configuração > Plugins antes de salvar avisos.', 'contractnotice'),
