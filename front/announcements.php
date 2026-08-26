@@ -42,11 +42,13 @@ try {
         $profiles = AnnouncementRepository::getProfiles();
         $announcements = AnnouncementRepository::getForManagement();
         $targetIds = array_map('intval', (array) $form['target_ids']);
-        // A plugin-scoped token avoids incompatibilities with the global GLPI token on legacy routes.
+        // GLPI validates every POST before running the legacy endpoint, so each form
+        // must include its official token as well as the plugin-scoped token below.
+        $glpiCsrfToken = Session::getNewCSRFToken(true);
         if (empty($_SESSION['plugin_contractnotice_csrf_token'])) {
             $_SESSION['plugin_contractnotice_csrf_token'] = bin2hex(random_bytes(32));
         }
-        $token = (string) $_SESSION['plugin_contractnotice_csrf_token'];
+        $pluginToken = (string) $_SESSION['plugin_contractnotice_csrf_token'];
         $selected = static fn (bool $state): string => $state ? ' selected' : '';
         $checked = static fn (bool $state): string => $state ? ' checked' : '';
 
@@ -59,7 +61,8 @@ try {
             . ((int) $form['id'] > 0 ? 'Editar aviso' : 'Novo aviso')
             . '</h2></div><div class="card-body">'
             . '<form method="post" action="' . $escape($saveUrl) . '" id="contractnotice-form">'
-            . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($token) . '">'
+            . '<input type="hidden" name="_glpi_csrf_token" value="' . $escape($glpiCsrfToken) . '">'
+            . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($pluginToken) . '">'
             . '<input type="hidden" name="id" value="' . (int) $form['id'] . '">'
             . '<input type="hidden" name="action" value="save">'
             . '<div class="mb-3"><label class="form-label" for="contractnotice-name">Título</label>'
@@ -148,12 +151,14 @@ try {
                 . '<a class="btn btn-sm btn-outline-primary" href="' . $escape($managementUrl . '?id=' . $id)
                 . '" title="Editar"><i class="ti ti-pencil"></i></a>'
                 . '<form method="post" action="' . $escape($saveUrl) . '" class="d-inline">'
-                . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($token) . '">'
+                . '<input type="hidden" name="_glpi_csrf_token" value="' . $escape($glpiCsrfToken) . '">'
+            . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($pluginToken) . '">'
                 . '<input type="hidden" name="id" value="' . $id . '"><input type="hidden" name="action" value="toggle">'
                 . '<button class="btn btn-sm btn-outline-secondary" type="submit" title="Ativar ou desativar"><i class="ti '
                 . ($announcement['is_active'] ? 'ti-player-pause' : 'ti-player-play') . '"></i></button></form>'
                 . '<form method="post" action="' . $escape($saveUrl) . '" class="d-inline" onsubmit="return confirm(\'Apagar este aviso?\');">'
-                . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($token) . '">'
+                . '<input type="hidden" name="_glpi_csrf_token" value="' . $escape($glpiCsrfToken) . '">'
+            . '<input type="hidden" name="plugin_contractnotice_token" value="' . $escape($pluginToken) . '">'
                 . '<input type="hidden" name="id" value="' . $id . '"><input type="hidden" name="action" value="delete">'
                 . '<button class="btn btn-sm btn-outline-danger" type="submit" title="Apagar"><i class="ti ti-trash"></i></button></form>'
                 . '</div></td></tr>';
