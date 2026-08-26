@@ -4,7 +4,7 @@ use Glpi\Plugin\Hooks;
 use GlpiPlugin\Contractnotice\Manager;
 use GlpiPlugin\Contractnotice\Menu;
 
-define('PLUGIN_CONTRACTNOTICE_VERSION', '2.2.0');
+define('PLUGIN_CONTRACTNOTICE_VERSION', '2.0.0');
 define('PLUGIN_CONTRACTNOTICE_MIN_GLPI_VERSION', '11.0.0');
 define('PLUGIN_CONTRACTNOTICE_MAX_GLPI_VERSION', '11.1.0');
 define('PLUGIN_CONTRACTNOTICE_MANAGER_PROFILE', 'X GERENTE GLPI');
@@ -22,7 +22,7 @@ function plugin_init_contractnotice(): void
 
     if (Session::getLoginUserID() > 0) {
         $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['contractnotice'] = [
-            'js/contract-notice-2.2.0.js',
+            'js/contract-notice.js',
         ];
 
         if (Manager::canManage()) {
@@ -43,7 +43,7 @@ function plugin_version_contractnotice(): array
     return [
         'name'         => 'Aviso de Contratos',
         'version'      => PLUGIN_CONTRACTNOTICE_VERSION,
-        'author'       => '@DevGuijas - Github',
+        'author'       => 'Equipe TI CSC',
         'license'      => 'MIT',
         'homepage'     => '',
         'requirements' => [

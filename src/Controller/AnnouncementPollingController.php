@@ -20,11 +20,6 @@ final class AnnouncementPollingController extends AbstractController
             return new JsonResponse(['notices' => []], Response::HTTP_UNAUTHORIZED);
         }
 
-        // A copied-but-not-updated plugin must not affect pages already open.
-        if (!AnnouncementRepository::isInstalled()) {
-            return new JsonResponse(['notices' => []]);
-        }
-
         return new JsonResponse([
             'session_key' => hash('sha256', session_id()),
             'notices' => AnnouncementRepository::getForUser(

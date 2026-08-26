@@ -12,7 +12,6 @@ final class AnnouncementRepository
     private const TARGET_PROFILES = 'profiles';
     private const DELIVERY_IMMEDIATE = 'immediate';
     private const DELIVERY_LOGIN = 'login';
-    private const DELIVERY_DAILY_LOGIN = 'daily_login';
 
     public static function getAnnouncementsTable(): string
     {
@@ -24,19 +23,29 @@ final class AnnouncementRepository
         return 'glpi_plugin_contractnotice_targets';
     }
 
-    public static function getAcknowledgementsTable(): string
-    {
-        return 'glpi_plugin_contractnotice_acknowledgements';
-    }
-
-    /** Returns whether the plugin database schema is available. */
-    public static function isInstalled(): bool
+    /** Creates the original static notice after installation or upgrade. */
+    public static function ensureInitialAnnouncement(): void
     {
         global $DB;
 
-        return $DB->tableExists(self::getAnnouncementsTable())
-            && $DB->tableExists(self::getTargetsTable())
-            && $DB->tableExists(self::getAcknowledgementsTable());
+        foreach ($DB->request([
+            'SELECT' => ['id'],
+            'FROM' => self::getAnnouncementsTable(),
+            'LIMIT' => 1,
+        ]) as $row) {
+            return;
+        }
+
+        self::save([
+            'name' => 'Aviso importante — Contratos',
+            'content' => "De: Administrador do sistema\n\nOlá, Colaborador/Gestor/Diretor\n\nUm pequeno aviso:\nEstamos passando por uma reformulação no fluxo de contratos.\nO mesmo pode se encontrar indisponível por alguns instantes!\nTodos os perfis estão sendo ajustados e em breve teremos um treinamento sobre \"Contratos\" aqui no GLPI.\n\nAtenciosamente,\nEquipe TI CSC",
+            'target_type' => self::TARGET_ALL,
+            'target_ids' => [],
+            'delivery_mode' => self::DELIVERY_LOGIN,
+            'start_at' => date('Y-m-d\TH:i'),
+            'end_at' => '',
+            'is_active' => '1',
+        ]);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -70,11 +79,9 @@ final class AnnouncementRepository
                 $profiles
             );
             $announcement['status'] = self::getStatus($announcement);
-            $announcement['delivery_label'] = match ($announcement['delivery_mode']) {
-                self::DELIVERY_IMMEDIATE => __('Imediato', 'contractnotice'),
-                self::DELIVERY_DAILY_LOGIN => __('Ao logar — 1x por dia', 'contractnotice'),
-                default => __('Ao logar', 'contractnotice'),
-            };
+            $announcement['delivery_label'] = $announcement['delivery_mode'] === self::DELIVERY_IMMEDIATE
+                ? __('Imediato', 'contractnotice')
+                : __('Ao logar', 'contractnotice');
         }
         unset($announcement);
 
@@ -117,6 +124,7 @@ final class AnnouncementRepository
         foreach ($DB->request([
             'SELECT' => ['id', 'name'],
             'FROM' => 'glpi_groups',
+            'WHERE' => ['is_deleted' => 0],
             'ORDER' => ['name ASC'],
         ]) as $row) {
             $groups[(int) $row['id']] = (string) $row['name'];
@@ -213,39 +221,8 @@ final class AnnouncementRepository
     {
         global $DB;
 
-        $DB->delete(self::getAcknowledgementsTable(), ['plugin_contractnotice_announcements_id' => $id]);
         $DB->delete(self::getTargetsTable(), ['plugin_contractnotice_announcements_id' => $id]);
         $DB->delete(self::getAnnouncementsTable(), ['id' => $id]);
-    }
-
-    public static function acknowledgeDaily(int $announcementId, int $userId, string $dateMod): void
-    {
-        global $DB;
-
-        $announcement = self::get($announcementId);
-        if (
-            $announcement === null
-            || $announcement['delivery_mode'] !== self::DELIVERY_DAILY_LOGIN
-            || (string) $announcement['date_mod'] !== $dateMod
-        ) {
-            throw new DomainException(__('Aviso diário inválido ou desatualizado.', 'contractnotice'));
-        }
-        $groups = self::getUserTargetIds('glpi_groups_users', 'groups_id', $userId);
-        $profiles = self::getUserTargetIds('glpi_profiles_users', 'profiles_id', $userId);
-        if (!self::isAvailableNow($announcement, date('Y-m-d H:i:s')) || !self::matchesAudience($announcement, $groups, $profiles)) {
-            throw new DomainException(__('Você não possui acesso a este aviso.', 'contractnotice'));
-        }
-        $day = date('Y-m-d');
-        if (self::wasAcknowledgedToday($announcementId, $userId, $dateMod, $day)) {
-            return;
-        }
-        $DB->insert(self::getAcknowledgementsTable(), [
-            'plugin_contractnotice_announcements_id' => $announcementId,
-            'users_id' => $userId,
-            'acknowledged_day' => $day,
-            'announcement_date_mod' => $dateMod,
-            'date_creation' => date('Y-m-d H:i:s'),
-        ]);
     }
 
     /** @return array<int, array<string, string|int>> */
@@ -260,9 +237,6 @@ final class AnnouncementRepository
             if ($pollOnly && $announcement['delivery_mode'] !== self::DELIVERY_IMMEDIATE) {
                 continue;
             }
-            if ($announcement['delivery_mode'] === self::DELIVERY_DAILY_LOGIN && self::wasAcknowledgedToday($announcement['id'], $userId, (string) $announcement['date_mod'], date('Y-m-d'))) {
-                continue;
-            }
             if (!self::isAvailableNow($announcement, $now)) {
                 continue;
             }
@@ -274,7 +248,6 @@ final class AnnouncementRepository
                 'name' => $announcement['name'],
                 'content' => $announcement['content'],
                 'date_mod' => $announcement['date_mod'],
-                'delivery_mode' => $announcement['delivery_mode'],
             ];
         }
 
@@ -290,12 +263,7 @@ final class AnnouncementRepository
         $content = trim(strip_tags((string) ($input['content'] ?? '')));
         $targetType = (string) ($input['target_type'] ?? self::TARGET_ALL);
         $deliveryMode = (string) ($input['delivery_mode'] ?? self::DELIVERY_IMMEDIATE);
-        $targetValues = match ($targetType) {
-            self::TARGET_GROUPS => $input['group_target_ids'] ?? ($input['target_ids'] ?? []),
-            self::TARGET_PROFILES => $input['profile_target_ids'] ?? ($input['target_ids'] ?? []),
-            default => [],
-        };
-        $targetIds = self::normalizeIds($targetValues);
+        $targetIds = self::normalizeIds($input['target_ids'] ?? []);
         $startAt = self::normalizeDate((string) ($input['start_at'] ?? ''));
         $endAt = self::normalizeDate((string) ($input['end_at'] ?? ''), true);
 
@@ -305,7 +273,7 @@ final class AnnouncementRepository
         if (!in_array($targetType, [self::TARGET_ALL, self::TARGET_GROUPS, self::TARGET_PROFILES], true)) {
             throw new DomainException(__('Público-alvo inválido.', 'contractnotice'));
         }
-        if (!in_array($deliveryMode, [self::DELIVERY_IMMEDIATE, self::DELIVERY_LOGIN, self::DELIVERY_DAILY_LOGIN], true)) {
+        if (!in_array($deliveryMode, [self::DELIVERY_IMMEDIATE, self::DELIVERY_LOGIN], true)) {
             throw new DomainException(__('Tipo de disparo inválido.', 'contractnotice'));
         }
         if ($targetType === self::TARGET_ALL) {
@@ -411,26 +379,6 @@ final class AnnouncementRepository
     private static function schedulesOverlap(string $startA, ?string $endA, string $startB, ?string $endB): bool
     {
         return ($endA === null || $startB <= $endA) && ($endB === null || $startA <= $endB);
-    }
-
-    private static function wasAcknowledgedToday(int $announcementId, int $userId, string $dateMod, string $day): bool
-    {
-        global $DB;
-
-        foreach ($DB->request([
-            'SELECT' => ['id'],
-            'FROM' => self::getAcknowledgementsTable(),
-            'WHERE' => [
-                'plugin_contractnotice_announcements_id' => $announcementId,
-                'users_id' => $userId,
-                'acknowledged_day' => $day,
-                'announcement_date_mod' => $dateMod,
-            ],
-            'LIMIT' => 1,
-        ]) as $row) {
-            return true;
-        }
-        return false;
     }
 
     /** @param array<string, mixed> $announcement */

@@ -18,7 +18,7 @@ final class Menu extends CommonGLPI
         $menu = [];
         if (Manager::canManage()) {
             $menu['title'] = self::getMenuName();
-            $menu['page'] = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/announcements.php';
+            $menu['page'] = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/Announcements';
         }
         $menu['icon'] = self::getIcon();
 
