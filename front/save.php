@@ -15,8 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Html::redirect($managementUrl);
 }
 
-// The page issues a standalone token so the three action forms can safely share it.
-Session::checkCSRF($_POST, true);
+$submittedToken = (string) ($_POST['plugin_contractnotice_token'] ?? '');
+$sessionToken = (string) ($_SESSION['plugin_contractnotice_csrf_token'] ?? '');
+if ($sessionToken === '' || !hash_equals($sessionToken, $submittedToken)) {
+    Session::addMessageAfterRedirect(
+        __('A sessão do formulário expirou. Volte à Central de Avisos e tente novamente.', 'contractnotice'),
+        false,
+        ERROR
+    );
+    Html::redirect($managementUrl);
+}
 if (!AnnouncementRepository::isInstalled()) {
     Session::addMessageAfterRedirect(
         __('O plugin precisa ser atualizado em Configuração > Plugins antes de salvar avisos.', 'contractnotice'),
