@@ -4,7 +4,7 @@ use Glpi\Plugin\Hooks;
 use GlpiPlugin\Contractnotice\Manager;
 use GlpiPlugin\Contractnotice\Menu;
 
-define('PLUGIN_CONTRACTNOTICE_VERSION', '2.0.2');
+define('PLUGIN_CONTRACTNOTICE_VERSION', '2.0.3');
 define('PLUGIN_CONTRACTNOTICE_MIN_GLPI_VERSION', '11.0.0');
 define('PLUGIN_CONTRACTNOTICE_MAX_GLPI_VERSION', '11.1.0');
 define('PLUGIN_CONTRACTNOTICE_MANAGER_PROFILE', 'X GERENTE GLPI');
