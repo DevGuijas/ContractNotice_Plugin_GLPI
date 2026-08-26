@@ -43,7 +43,6 @@ function plugin_contractnotice_install(): bool
     }
 
     $migration->executeMigration();
-    AnnouncementRepository::ensureInitialAnnouncement();
 
     return true;
 }

@@ -32,31 +32,6 @@ final class AnnouncementRepository
             && $DB->tableExists(self::getTargetsTable());
     }
 
-    /** Creates the original static notice after installation or upgrade. */
-    public static function ensureInitialAnnouncement(): void
-    {
-        global $DB;
-
-        foreach ($DB->request([
-            'SELECT' => ['id'],
-            'FROM' => self::getAnnouncementsTable(),
-            'LIMIT' => 1,
-        ]) as $row) {
-            return;
-        }
-
-        self::save([
-            'name' => 'Aviso importante — Contratos',
-            'content' => "De: Administrador do sistema\n\nOlá, Colaborador/Gestor/Diretor\n\nUm pequeno aviso:\nEstamos passando por uma reformulação no fluxo de contratos.\nO mesmo pode se encontrar indisponível por alguns instantes!\nTodos os perfis estão sendo ajustados e em breve teremos um treinamento sobre \"Contratos\" aqui no GLPI.\n\nAtenciosamente,\nEquipe TI CSC",
-            'target_type' => self::TARGET_ALL,
-            'target_ids' => [],
-            'delivery_mode' => self::DELIVERY_LOGIN,
-            'start_at' => date('Y-m-d\TH:i'),
-            'end_at' => '',
-            'is_active' => '1',
-        ]);
-    }
-
     /** @return array<int, array<string, mixed>> */
     public static function getForManagement(): array
     {
