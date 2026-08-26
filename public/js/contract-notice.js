@@ -2,7 +2,7 @@
     'use strict';
 
     const rootDoc = window.CFG_GLPI?.root_doc ?? '';
-    const feedUrl = `${rootDoc}/plugins/contractnotice/Announcements/Feed`;
+    const feedUrl = `${rootDoc}/plugins/contractnotice/front/feed.php`;
     const seenInMemory = new Set();
 
     const getKey = (notice, sessionKey) => [
