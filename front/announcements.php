@@ -12,7 +12,7 @@ Session::checkLoginUser();
 Manager::checkCanManage();
 
 $managementUrl = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/announcements.php';
-$saveUrl = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/save.php';
+$saveUrl = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/action-2.1.1.php';
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $flash = $_SESSION['plugin_contractnotice_flash'] ?? null;
 unset($_SESSION['plugin_contractnotice_flash']);
