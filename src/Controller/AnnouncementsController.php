@@ -2,12 +2,10 @@
 
 namespace GlpiPlugin\Contractnotice\Controller;
 
-use Glpi\Application\View\TemplateRenderer;
 use Glpi\Controller\AbstractController;
 use GlpiPlugin\Contractnotice\AnnouncementRepository;
 use GlpiPlugin\Contractnotice\Manager;
 use GlpiPlugin\Contractnotice\Menu;
-use Html;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -18,6 +16,17 @@ final class AnnouncementsController extends AbstractController
     public function __invoke(Request $request): Response
     {
         Manager::checkCanManage();
+
+        $pageData = [
+            'page_title' => __('Disparar aviso', 'contractnotice'),
+            'menu_item' => Menu::class,
+        ];
+
+        if (!AnnouncementRepository::isInstalled()) {
+            return $this->render('@contractnotice/announcements/needs-update.html.twig', $pageData + [
+                'plugins_url' => rtrim($request->getBaseUrl(), '/') . '/front/plugin.php',
+            ]);
+        }
 
         $editId = $request->query->getInt('id');
         $formData = $editId > 0 ? AnnouncementRepository::get($editId) : null;
@@ -30,7 +39,7 @@ final class AnnouncementsController extends AbstractController
                 : substr(str_replace(' ', 'T', $formData['end_at']), 0, 16);
         }
 
-        $content = TemplateRenderer::getInstance()->render('@contractnotice/announcements/manage.html.twig', [
+        return $this->render('@contractnotice/announcements/manage.html.twig', $pageData + [
             'announcements' => AnnouncementRepository::getForManagement(),
             'form' => $formData,
             'groups' => AnnouncementRepository::getGroups(),
@@ -39,19 +48,6 @@ final class AnnouncementsController extends AbstractController
             'save_url' => $this->managementUrl($request, '/Save'),
             'manager_profile' => PLUGIN_CONTRACTNOTICE_MANAGER_PROFILE,
         ]);
-
-        ob_start();
-        Html::header(
-            __('Disparar aviso', 'contractnotice'),
-            $request->getPathInfo(),
-            'admin',
-            Menu::class,
-            'contractnotice'
-        );
-        echo $content;
-        Html::footer();
-
-        return new Response((string) ob_get_clean());
     }
 
     private function managementUrl(Request $request, string $suffix = ''): string

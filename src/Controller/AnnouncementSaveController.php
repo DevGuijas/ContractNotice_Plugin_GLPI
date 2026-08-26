@@ -23,6 +23,15 @@ final class AnnouncementSaveController extends AbstractController
             throw new MethodNotAllowedHttpException(['POST']);
         }
 
+        if (!AnnouncementRepository::isInstalled()) {
+            Session::addMessageAfterRedirect(
+                __('O plugin precisa ser atualizado em Configuração > Plugins antes de salvar avisos.', 'contractnotice'),
+                false,
+                ERROR
+            );
+            return new RedirectResponse($this->managementUrl($request));
+        }
+
         $action = $request->request->getString('action', 'save');
         $id = $request->request->getInt('id');
 

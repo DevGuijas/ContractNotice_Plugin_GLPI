@@ -15,8 +15,10 @@ criado após a atualização.
    O resultado deve ser `<pasta-do-glpi>/plugins/contractnotice/`.
 2. Acesse o GLPI com um usuário administrador.
 3. Abra **Configuração > Plugins**.
-4. Localize **Aviso de Contratos**, clique em **Instalar** e depois em
-   **Ativar**. Se a versão 1.0.0 já estiver instalada, use **Atualizar**.
+4. Localize **Aviso de Contratos**. Na primeira instalação, clique em
+   **Instalar** e depois em **Ativar**. Se o plugin já estiver instalado —
+   inclusive na versão 1.0.0 ou 2.0.0 — clique em **Atualizar** após copiar
+   os novos arquivos. Essa ação cria/atualiza as tabelas da central de avisos.
 5. Entre novamente no GLPI com qualquer perfil para validar a mensagem.
 
 Se o plugin não aparecer logo após a cópia, limpe o cache do GLPI:

@@ -23,6 +23,15 @@ final class AnnouncementRepository
         return 'glpi_plugin_contractnotice_targets';
     }
 
+    /** Returns whether the plugin database schema is available. */
+    public static function isInstalled(): bool
+    {
+        global $DB;
+
+        return $DB->tableExists(self::getAnnouncementsTable())
+            && $DB->tableExists(self::getTargetsTable());
+    }
+
     /** Creates the original static notice after installation or upgrade. */
     public static function ensureInitialAnnouncement(): void
     {

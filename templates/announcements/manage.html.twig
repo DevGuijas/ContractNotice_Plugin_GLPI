@@ -1,3 +1,9 @@
+{% extends "layout/page_skeleton.html.twig" %}
+
+{% set title = page_title %}
+{% set menu = ['admin', menu_item, 'contractnotice'] %}
+
+{% block content %}
 <div class="container-fluid">
    <div class="alert alert-info" role="alert">
       <i class="ti ti-info-circle me-2"></i>
@@ -152,3 +158,4 @@
    refresh();
 })();
 </script>
+{% endblock content %}
