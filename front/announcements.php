@@ -180,7 +180,8 @@ HTML;
     );
     echo '<div class="container-fluid"><div class="alert alert-danger" role="alert">'
         . '<i class="ti ti-alert-triangle me-2"></i>'
-        . __('Não foi possível carregar a Central de Avisos. Consulte o log php-errors do GLPI.', 'contractnotice')
+        . '<strong>' . __('Não foi possível carregar a Central de Avisos.', 'contractnotice') . '</strong> '
+        . __('Detalhe técnico para diagnóstico:', 'contractnotice') . ' <code>' . $escape($exception->getMessage()) . '</code>'
         . '</div></div>';
 }
 
