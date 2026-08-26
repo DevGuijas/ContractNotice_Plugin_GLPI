@@ -6,19 +6,33 @@ use GlpiPlugin\Contractnotice\AnnouncementRepository;
 
 header('Content-Type: application/json; charset=UTF-8');
 
-$userId = Session::getLoginUserID();
+$userId = (int) Session::getLoginUserID();
 if ($userId <= 0 || !AnnouncementRepository::isInstalled()) {
     echo json_encode(['notices' => []], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 try {
+    $impersonatorId = Session::isImpersonateActive() ? Session::getImpersonatorId() : null;
+    $isImpersonating = $impersonatorId !== null;
+    $pollOnly = ($_GET['mode'] ?? '') === 'poll';
+    $returnSuppressionNotices = [];
+    if ($isImpersonating) {
+        foreach (AnnouncementRepository::getForUser((int) $impersonatorId, false) as $notice) {
+            $returnSuppressionNotices[] = [
+                'id' => (int) $notice['id'],
+                'date_mod' => (string) $notice['date_mod'],
+            ];
+        }
+    }
+
     echo json_encode([
         'session_key' => hash('sha256', session_id()),
-        'notices' => AnnouncementRepository::getForUser(
-            $userId,
-            ($_GET['mode'] ?? '') === 'poll'
-        ),
+        'user_id' => $userId,
+        'is_impersonating' => $isImpersonating,
+        'impersonator_id' => $impersonatorId,
+        'return_suppression_notices' => $returnSuppressionNotices,
+        'notices' => $isImpersonating ? [] : AnnouncementRepository::getForUser($userId, $pollOnly),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } catch (\Throwable $exception) {
     Toolbox::logInFile(

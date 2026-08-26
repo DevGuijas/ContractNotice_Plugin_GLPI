@@ -271,7 +271,12 @@ final class AnnouncementRepository
         $content = trim(strip_tags((string) ($input['content'] ?? '')));
         $targetType = (string) ($input['target_type'] ?? self::TARGET_ALL);
         $deliveryMode = (string) ($input['delivery_mode'] ?? self::DELIVERY_IMMEDIATE);
-        $targetIds = self::normalizeIds($input['target_ids'] ?? []);
+        $targetValues = match ($targetType) {
+            self::TARGET_GROUPS => $input['group_target_ids'] ?? ($input['target_ids'] ?? []),
+            self::TARGET_PROFILES => $input['profile_target_ids'] ?? ($input['target_ids'] ?? []),
+            default => [],
+        };
+        $targetIds = self::normalizeIds($targetValues);
         $startAt = self::normalizeDate((string) ($input['start_at'] ?? ''));
         $endAt = self::normalizeDate((string) ($input['end_at'] ?? ''), true);
 

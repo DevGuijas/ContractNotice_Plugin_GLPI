@@ -14,6 +14,14 @@ Manager::checkCanManage();
 $managementUrl = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/announcements.php';
 $saveUrl = $CFG_GLPI['root_doc'] . '/plugins/contractnotice/front/save.php';
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$flash = $_SESSION['plugin_contractnotice_flash'] ?? null;
+unset($_SESSION['plugin_contractnotice_flash']);
+$flashMarkup = '';
+if (is_array($flash) && isset($flash['message'])) {
+    $flashClass = ($flash['type'] ?? '') === 'error' ? 'danger' : 'success';
+    $flashMarkup = '<div class="alert alert-' . $flashClass . '" role="alert">'
+        . $escape($flash['message']) . '</div>';
+}
 
 Html::header(__('Disparar aviso', 'contractnotice'), '', 'admin', Menu::class, 'contractnotice');
 
@@ -53,6 +61,7 @@ try {
         $checked = static fn (bool $state): string => $state ? ' checked' : '';
 
         echo '<div class="container-fluid">'
+            . $flashMarkup
             . '<div class="alert alert-info" role="alert"><i class="ti ti-info-circle me-2"></i>'
             . 'Esta central é visível somente quando o perfil ativo é <strong>'
             . $escape(PLUGIN_CONTRACTNOTICE_MANAGER_PROFILE)
@@ -85,7 +94,7 @@ try {
         foreach ($groups as $id => $name) {
             $isChecked = in_array((int) $id, $targetIds, true);
             echo '<label class="form-check d-block mb-1" data-contractnotice-option>'
-                . '<input class="form-check-input" type="checkbox" name="target_ids[]" value="' . (int) $id . '"'
+                . '<input class="form-check-input" type="checkbox" name="group_target_ids[]" value="' . (int) $id . '"'
                 . $checked($isChecked) . '><span class="form-check-label">' . $escape($name) . '</span></label>';
         }
 
@@ -98,7 +107,7 @@ try {
         foreach ($profiles as $id => $name) {
             $isChecked = in_array((int) $id, $targetIds, true);
             echo '<label class="form-check d-block mb-1" data-contractnotice-option>'
-                . '<input class="form-check-input" type="checkbox" name="target_ids[]" value="' . (int) $id . '"'
+                . '<input class="form-check-input" type="checkbox" name="profile_target_ids[]" value="' . (int) $id . '"'
                 . $checked($isChecked) . '><span class="form-check-label">' . $escape($name) . '</span></label>';
         }
 
