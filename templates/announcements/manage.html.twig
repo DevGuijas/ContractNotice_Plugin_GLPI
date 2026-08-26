@@ -1,0 +1,155 @@
+
+<div class="container-fluid">
+   <div class="alert alert-info" role="alert">
+      <i class="ti ti-info-circle me-2"></i>
+      Esta central é visível somente quando o perfil ativo é <strong>{{ manager_profile }}</strong>.
+      Avisos imediatos são consultados a cada 30 segundos pelos usuários logados; avisos “ao logar” aparecem no início de cada sessão.
+   </div>
+
+   <div class="card mb-4">
+      <div class="card-header">
+         <h2 class="card-title mb-0">{{ form.id ? 'Editar aviso' : 'Novo aviso' }}</h2>
+      </div>
+      <div class="card-body">
+         <form method="post" action="{{ save_url }}" id="contractnotice-form">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="id" value="{{ form.id }}">
+            <input type="hidden" name="action" value="save">
+
+            <div class="mb-3">
+               <label class="form-label" for="contractnotice-name">Título</label>
+               <input class="form-control" id="contractnotice-name" name="name" maxlength="255" required value="{{ form.name }}">
+            </div>
+            <div class="mb-3">
+               <label class="form-label" for="contractnotice-content">Mensagem</label>
+               <textarea class="form-control" id="contractnotice-content" name="content" rows="8" required>{{ form.content }}</textarea>
+               <div class="form-hint">O texto é exibido de forma segura, preservando as quebras de linha.</div>
+            </div>
+
+            <div class="row">
+               <div class="col-md-4 mb-3">
+                  <label class="form-label" for="contractnotice-target-type">Público-alvo</label>
+                  <select class="form-select" id="contractnotice-target-type" name="target_type">
+                     <option value="all" {{ form.target_type == 'all' ? 'selected' : '' }}>Todos os usuários</option>
+                     <option value="groups" {{ form.target_type == 'groups' ? 'selected' : '' }}>Grupo(s)</option>
+                     <option value="profiles" {{ form.target_type == 'profiles' ? 'selected' : '' }}>Perfil(is)</option>
+                  </select>
+               </div>
+               <div class="col-md-4 mb-3 contractnotice-target contractnotice-groups">
+                  <label class="form-label" for="contractnotice-groups">Grupos</label>
+                  <select class="form-select" id="contractnotice-groups" name="target_ids[]" multiple size="6">
+                     {% for id, name in groups %}
+                        <option value="{{ id }}" {{ id in form.target_ids ? 'selected' : '' }}>{{ name }}</option>
+                     {% endfor %}
+                  </select>
+               </div>
+               <div class="col-md-4 mb-3 contractnotice-target contractnotice-profiles">
+                  <label class="form-label" for="contractnotice-profiles">Perfis</label>
+                  <select class="form-select" id="contractnotice-profiles" name="target_ids[]" multiple size="6">
+                     {% for id, name in profiles %}
+                        <option value="{{ id }}" {{ id in form.target_ids ? 'selected' : '' }}>{{ name }}</option>
+                     {% endfor %}
+                  </select>
+               </div>
+               <div class="col-md-4 mb-3">
+                  <label class="form-label" for="contractnotice-delivery-mode">Disparo</label>
+                  <select class="form-select" id="contractnotice-delivery-mode" name="delivery_mode">
+                     <option value="immediate" {{ form.delivery_mode == 'immediate' ? 'selected' : '' }}>Imediato</option>
+                     <option value="login" {{ form.delivery_mode == 'login' ? 'selected' : '' }}>Sempre ao logar</option>
+                  </select>
+               </div>
+               <div class="col-md-4 mb-3">
+                  <label class="form-label" for="contractnotice-start">Início</label>
+                  <input class="form-control" id="contractnotice-start" name="start_at" type="datetime-local" required value="{{ form.start_at }}">
+               </div>
+               <div class="col-md-4 mb-3">
+                  <label class="form-label" for="contractnotice-end">Encerramento (opcional)</label>
+                  <input class="form-control" id="contractnotice-end" name="end_at" type="datetime-local" value="{{ form.end_at }}">
+               </div>
+            </div>
+
+            <label class="form-check mb-3">
+               <input class="form-check-input" name="is_active" type="checkbox" value="1" {{ form.is_active ? 'checked' : '' }}>
+               <span class="form-check-label">Aviso ativo</span>
+            </label>
+
+            <div class="d-flex gap-2">
+               <button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy me-1"></i>Salvar aviso</button>
+               {% if form.id %}
+                  <a class="btn btn-outline-secondary" href="{{ management_url }}">Cancelar edição</a>
+               {% endif %}
+            </div>
+         </form>
+      </div>
+   </div>
+
+   <div class="card">
+      <div class="card-header">
+         <h2 class="card-title mb-0">Avisos existentes</h2>
+      </div>
+      <div class="table-responsive">
+         <table class="table table-vcenter card-table">
+            <thead>
+               <tr>
+                  <th>Aviso</th>
+                  <th>Público</th>
+                  <th>Disparo</th>
+                  <th>Período</th>
+                  <th>Status</th>
+                  <th class="w-1">Ações</th>
+               </tr>
+            </thead>
+            <tbody>
+               {% for announcement in announcements %}
+                  <tr>
+                     <td><strong>{{ announcement.name }}</strong><br><span class="text-secondary text-truncate d-inline-block" style="max-width:30rem">{{ announcement.content }}</span></td>
+                     <td>{{ announcement.audience_label }}</td>
+                     <td>{{ announcement.delivery_label }}</td>
+                     <td>De {{ announcement.start_at }}{% if announcement.end_at %}<br>até {{ announcement.end_at }}{% endif %}</td>
+                     <td><span class="badge {{ announcement.is_active ? 'bg-success' : 'bg-secondary' }}">{{ announcement.status }}</span></td>
+                     <td>
+                        <div class="btn-list flex-nowrap">
+                           <a class="btn btn-sm btn-outline-primary" href="{{ management_url }}?id={{ announcement.id }}" title="Editar"><i class="ti ti-pencil"></i></a>
+                           <form method="post" action="{{ save_url }}" class="d-inline">
+                              <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+                              <input type="hidden" name="id" value="{{ announcement.id }}">
+                              <input type="hidden" name="action" value="toggle">
+                              <button class="btn btn-sm btn-outline-secondary" type="submit" title="Ativar ou desativar"><i class="ti {{ announcement.is_active ? 'ti-player-pause' : 'ti-player-play' }}"></i></button>
+                           </form>
+                           <form method="post" action="{{ save_url }}" class="d-inline" onsubmit="return confirm('Apagar este aviso?');">
+                              <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+                              <input type="hidden" name="id" value="{{ announcement.id }}">
+                              <input type="hidden" name="action" value="delete">
+                              <button class="btn btn-sm btn-outline-danger" type="submit" title="Apagar"><i class="ti ti-trash"></i></button>
+                           </form>
+                        </div>
+                     </td>
+                  </tr>
+               {% else %}
+                  <tr><td colspan="6" class="text-secondary text-center py-4">Nenhum aviso cadastrado.</td></tr>
+               {% endfor %}
+            </tbody>
+         </table>
+      </div>
+   </div>
+</div>
+
+<script>
+(() => {
+   const type = document.getElementById('contractnotice-target-type');
+   const groupBox = document.querySelector('.contractnotice-groups');
+   const profileBox = document.querySelector('.contractnotice-profiles');
+   const groupSelect = document.getElementById('contractnotice-groups');
+   const profileSelect = document.getElementById('contractnotice-profiles');
+   const refresh = () => {
+      const groups = type.value === 'groups';
+      const profiles = type.value === 'profiles';
+      groupBox.style.display = groups ? '' : 'none';
+      profileBox.style.display = profiles ? '' : 'none';
+      groupSelect.disabled = !groups;
+      profileSelect.disabled = !profiles;
+   };
+   type.addEventListener('change', refresh);
+   refresh();
+})();
+</script>
