@@ -116,6 +116,7 @@ try {
             . '<select class="form-select" id="contractnotice-delivery-mode" name="delivery_mode">'
             . '<option value="immediate"' . $selected($form['delivery_mode'] === 'immediate') . '>Imediato</option>'
             . '<option value="login"' . $selected($form['delivery_mode'] === 'login') . '>Sempre ao logar</option>'
+            . '<option value="daily_login"' . $selected($form['delivery_mode'] === 'daily_login') . '>Ao logar — 1x por dia</option>'
             . '</select></div><div class="col-md-4 mb-3"><label class="form-label" for="contractnotice-start">Início</label>'
             . '<input class="form-control" id="contractnotice-start" name="start_at" type="datetime-local" required value="'
             . $escape($form['start_at']) . '"></div><div class="col-md-4 mb-3">'

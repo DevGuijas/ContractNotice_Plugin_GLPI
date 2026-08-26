@@ -28,6 +28,7 @@ try {
 
     echo json_encode([
         'session_key' => hash('sha256', session_id()),
+        'csrf_token' => Session::getNewCSRFToken(true),
         'user_id' => $userId,
         'is_impersonating' => $isImpersonating,
         'impersonator_id' => $impersonatorId,

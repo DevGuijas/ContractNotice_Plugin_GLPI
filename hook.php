@@ -11,6 +11,7 @@ function plugin_contractnotice_install(): bool
     $migration = new \Migration(PLUGIN_CONTRACTNOTICE_VERSION);
     $announcementsTable = AnnouncementRepository::getAnnouncementsTable();
     $targetsTable = AnnouncementRepository::getTargetsTable();
+    $acknowledgementsTable = AnnouncementRepository::getAcknowledgementsTable();
 
     if (!$DB->tableExists($announcementsTable)) {
         $DB->doQuery("CREATE TABLE `$announcementsTable` (
@@ -42,6 +43,20 @@ function plugin_contractnotice_install(): bool
         ) ENGINE=InnoDB DEFAULT CHARSET=$charset COLLATE=$collation ROW_FORMAT=DYNAMIC");
     }
 
+    if (!$DB->tableExists($acknowledgementsTable)) {
+        $DB->doQuery("CREATE TABLE `$acknowledgementsTable` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `plugin_contractnotice_announcements_id` INT UNSIGNED NOT NULL,
+            `users_id` INT UNSIGNED NOT NULL,
+            `acknowledged_day` DATE NOT NULL,
+            `announcement_date_mod` DATETIME NOT NULL,
+            `date_creation` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `daily_acknowledgement` (`plugin_contractnotice_announcements_id`, `users_id`, `acknowledged_day`, `announcement_date_mod`),
+            KEY `user_day` (`users_id`, `acknowledged_day`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=$charset COLLATE=$collation ROW_FORMAT=DYNAMIC");
+    }
+
     $migration->executeMigration();
 
     return true;
@@ -52,6 +67,7 @@ function plugin_contractnotice_uninstall(): bool
     global $DB;
 
     foreach ([
+        AnnouncementRepository::getAcknowledgementsTable(),
         AnnouncementRepository::getTargetsTable(),
         AnnouncementRepository::getAnnouncementsTable(),
     ] as $table) {
